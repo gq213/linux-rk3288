@@ -1,0 +1,33 @@
+
+udhcpc -b -i eth0 -R -x hostname:bboxeth0
+mount -t nfs -o nolock -o tcp 192.168.2.125:/opt/gaoqiang/3288 /mnt
+
+hexdump /dev/input/event0
+hexdump /dev/input/event2
+
+cat /sys/kernel/debug/dri/0/state 
+tr '\000' '\377' < /dev/zero | dd of=/dev/fb0 bs=1k count=8100
+
+echo 20 > /sys/kernel/debug/asoc/I2S/dapm_pop_time
+amixer cset numid=26,iface=MIXER,name='Left Mixer Playback Switch' 1;
+amixer cset numid=32,iface=MIXER,name='Right Mixer Playback Switch' 1;
+amixer cset numid=9,iface=MIXER,name='PCM Volume' 192 192;
+amixer cset numid=11,iface=MIXER,name='Output 2 Playback Volume' 18 18;
+aplay /media/48k16bpsStereo.wav &
+
+mount /dev/sda1 /media/
+cat /sys/kernel/debug/usb/ff540000.usb/dr_mode 
+host
+cat /sys/kernel/debug/usb/ff580000.usb/dr_mode 
+otg
+ls /sys/class/udc/
+ff580000.usb
+cat /sys/kernel/debug/usb/ff580000.usb/hw_params
+cat /sys/kernel/debug/usb/ff580000.usb/params
+
+mount /dev/mmcblk1p2 /media/
+
+cat /proc/iomem
+cat /sys/kernel/debug/gpio
+cat /sys/kernel/debug/clk/clk_summary
+cat /sys/kernel/debug/regulator/regulator_summary

@@ -38,6 +38,8 @@ static int rk_hp_power(struct snd_soc_dapm_widget *w,
 	if (!gpio_is_valid(machine->gpio_hp_en))
 		return 0;
 
+	pr_info("%s: (%d)\n", __func__, SND_SOC_DAPM_EVENT_ON(event));
+
 	gpio_set_value_cansleep(machine->gpio_hp_en,
 				SND_SOC_DAPM_EVENT_ON(event));
 
@@ -142,7 +144,7 @@ static const struct snd_soc_ops rk_ops = {
 SND_SOC_DAILINK_DEFS(audio,
 	DAILINK_COMP_ARRAY(COMP_EMPTY()),
 	DAILINK_COMP_ARRAY(COMP_CODEC(NULL, NULL),
-			   COMP_CODEC("hdmi-audio-codec.2.auto", "i2s-hifi")),
+			   COMP_CODEC(NULL, "i2s-hifi")),
 	DAILINK_COMP_ARRAY(COMP_EMPTY()));
 
 static struct snd_soc_dai_link rk_dailink = {
@@ -227,6 +229,19 @@ static int snd_rk_mc_probe(struct platform_device *pdev)
 	if (ret) {
 		dev_err(&pdev->dev, "Unable to get codec_dai_name\n");
 		return ret;
+	}
+
+	rk_dailink.codecs[1].of_node = of_parse_phandle(np,
+							"rockchip,audio-codec",
+							1);
+	if (!rk_dailink.codecs[1].of_node) {
+		dev_err(&pdev->dev,
+			"Property 'rockchip,audio-codec[1]' missing or invalid\n");
+		rk_dailink.num_codecs -= 1;
+	} else if (!of_device_is_available(rk_dailink.codecs[1].of_node)) {
+		dev_err(&pdev->dev,
+			"Property 'rockchip,audio-codec[1]' disabled\n");
+		rk_dailink.num_codecs -= 1;
 	}
 
 	rk_dailink.cpus->of_node = of_parse_phandle(np, "rockchip,i2s-controller",

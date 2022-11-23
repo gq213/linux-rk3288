@@ -9,26 +9,29 @@
 / {
 	model = "Firefly-RK3288";
 	compatible = "firefly,firefly-rk3288", "rockchip,rk3288";
-};
 
-&ir {
-	gpios = <&gpio7 RK_PA0 GPIO_ACTIVE_LOW>;
-};
-
-&pinctrl {
-	act8846 {
-		pmic_vsel: pmic-vsel {
-			rockchip,pins = <7 RK_PB6 RK_FUNC_GPIO &pcfg_output_low>;
-		};
+	chosen {
+		bootargs = "earlycon=uart8250,mmio32,0xff690000 console=ttyS2,115200n8 noinitrd root=PARTLABEL=new_rootfs rootfstype=squashfs rootwait init=/linuxrc ignore_loglevel";
 	};
 
-	ir {
-		ir_int: ir-int {
-			rockchip,pins = <7 RK_PA0 RK_FUNC_GPIO &pcfg_pull_up>;
-		};
+	display-subsystem {
+		status = "okay";
 	};
 };
 
-&pwm1 {
+&vopb {
+	status = "okay";
+};
+
+&vopb_mmu {
+	status = "okay";
+};
+
+&hdmi {
+	ddc-i2c-bus = <&i2c5>;
+	status = "okay";
+};
+
+&i2c5 {
 	status = "okay";
 };
