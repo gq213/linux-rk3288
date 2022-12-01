@@ -25,6 +25,14 @@ ff580000.usb
 cat /sys/kernel/debug/usb/ff580000.usb/hw_params
 cat /sys/kernel/debug/usb/ff580000.usb/params
 
+模拟网卡
+rndis.sh start
+模拟U盘
+mass_storage.sh start
+模拟uvc摄像头
+uvc.sh start
+uvc /etc/800x480.jpg &
+
 mount /dev/mmcblk1p2 /media/
 
 cat /proc/iomem

@@ -580,6 +580,9 @@
 
 &usb_otg {
 	vbus-supply = <&vcc_otg_5v>;
+	g-np-tx-fifo-size = <16>;
+	g-rx-fifo-size = <280>;
+	g-tx-fifo-size = <256 128 128 64 32 16>;
 	status = "okay";
 };
 

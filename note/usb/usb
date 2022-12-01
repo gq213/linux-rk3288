@@ -1,0 +1,442 @@
+[root@buildroot /]# cat /sys/kernel/debug/usb/ff580000.usb/hw_params
+op_mode                       : 0
+arch                          : 2
+dma_desc_enable               : 1
+enable_dynamic_fifo           : 1
+en_multiple_tx_fifo           : 1
+rx_fifo_size                  : 1024
+host_nperio_tx_fifo_size      : 1024
+dev_nperio_tx_fifo_size       : 16
+host_perio_tx_fifo_size       : 512
+nperio_tx_q_depth             : 4
+host_perio_tx_q_depth         : 4
+dev_token_q_depth             : 8
+max_transfer_size             : 524287
+max_packet_count              : 1023
+host_channels                 : 9
+hs_phy_type                   : 1
+fs_phy_type                   : 0
+i2c_enable                    : 0
+num_dev_ep                    : 9
+num_dev_perio_in_ep           : 0
+total_fifo_size               : 972
+power_optimized               : 1
+utmi_phy_data_width           : 1
+snpsid                        : 0x4f54310a
+dev_ep_dirs                   : 0x6664
+[root@buildroot /]# cat /sys/kernel/debug/usb/ff580000.usb/params
+otg_caps.hnp_support          : 0
+otg_caps.srp_support          : 0
+otg_caps.otg_rev              : 0
+dma_desc_enable               : 0
+dma_desc_fs_enable            : 0
+speed                         : 0
+enable_dynamic_fifo           : 1
+en_multiple_tx_fifo           : 1
+host_rx_fifo_size             : 525
+host_nperio_tx_fifo_size      : 128
+host_perio_tx_fifo_size       : 256
+max_transfer_size             : 524287
+max_packet_count              : 1023
+host_channels                 : 9
+phy_type                      : 1
+phy_utmi_width                : 16
+phy_ulpi_ddr                  : 0
+phy_ulpi_ext_vbus             : 0
+i2c_enable                    : 0
+ipg_isoc_en                   : 0
+ulpi_fs_ls                    : 0
+host_support_fs_ls_low_power  : 0
+host_ls_low_power_phy_clk     : 0
+activate_stm_fs_transceiver   : 0
+activate_stm_id_vb_detection  : 0
+ts_dline                      : 0
+reload_ctl                    : 1
+ahbcfg                        : 0xe
+uframe_sched                  : 1
+external_id_pin_ctl           : 0
+power_down                    : 0
+lpm                           : 0
+lpm_clock_gating              : 0
+besl                          : 0
+hird_threshold_en             : 0
+hird_threshold                : 4
+service_interval              : 0
+host_dma                      : 1
+g_dma                         : 1
+g_dma_desc                    : 1
+g_rx_fifo_size                : 280
+g_np_tx_fifo_size             : 16
+g_tx_fifo_size[0]             : 0
+g_tx_fifo_size[1]             : 256
+g_tx_fifo_size[2]             : 128
+g_tx_fifo_size[3]             : 128
+g_tx_fifo_size[4]             : 64
+g_tx_fifo_size[5]             : 32
+g_tx_fifo_size[6]             : 16
+g_tx_fifo_size[7]             : 0
+g_tx_fifo_size[8]             : 0
+g_tx_fifo_size[9]             : 0
+g_tx_fifo_size[10]            : 0
+g_tx_fifo_size[11]            : 0
+g_tx_fifo_size[12]            : 0
+g_tx_fifo_size[13]            : 0
+g_tx_fifo_size[14]            : 0
+g_tx_fifo_size[15]            : 0
+
+uvc_queue_setup: video->imagesize=384000
+uvc_queue_setup: req_size=512,maxpacket=512,maxburst=0,mult=1
+uvc_num_requests=64
+
+min=16, dptxfszn=256
+dwc2 ff580000.usb: EPs: 10, dedicated fifos, 972 entries in SPRAM
+// p->host_rx_fifo_size = 525;
+// p->host_nperio_tx_fifo_size = 128;
+// p->host_perio_tx_fifo_size = 256;
+// 525 + 128 + 256 = 909
+// g-np-tx-fifo-size = <16>;
+// g-rx-fifo-size = <275>;
+// g-tx-fifo-size = <256 128 128 64 64 32>;
+// 16 + 275 + 256 + 128 + 128 + 64 + 64 + 32 = 963
+
+commit fda619f5282364b24dd542e1d65b2b86eb7943eb
+Author: William Wu <william.wu@rock-chips.com>
+Date:   Tue Apr 3 14:14:29 2018 +0800
+
+    ARM: dts: rockchip: reconfig dwc2 device fifo size
+    
+    According to the dwc2 programmer's guide v3.10a, in '2.1.3.2 Dedicated
+    FIFO Mode with No Thresholding', it suggested that:
+    
+    Device RxFIFO =
+    - Scatter/Gather DMA mode:
+    (4 * number of control endpoints + 6) + ((largest USB packet used / 4) +
+    1 for status information) + (2 * number of OUT endpoints) + 1 for Global NAK
+    
+    on rockchip platforms:
+    (4 * 1 + 6) + ((1024 / 4) + 1) + (2 * 6) + 1 = 280
+    
+    - Slave or Buffer DMA mode:
+    (5 * number of control endpoints + 8) + ((largest USB packet used / 4) +
+    1 for status information) + (2 * number of OUT endpoints) + 1 for Global NAK
+    
+    on rockchip platforms:
+    (5 * 1 + 8) + ((1024 / 4) + 1) + (2 * 6) + 1 = 283
+    
+    Device IN Endpoint TxFIFO =
+    The TxFIFO must equal at least one MaxPacketSize (MPS).
+    
+    In addition to RxFIFO and TxFIFOs, refer to dwc2 databook v3.10a,
+    'Figure 2-13 Device Mode FIFO Address Mapping and AHB FIFO Access Mapping
+    (Dedicated FIFO)', it required that when the device is operating in non
+    Scatter Gather Internal DMA mode, the last locations of the SPRAM are used
+    to store the DMAADDR values for each Endpoint (1 location per endpoint).
+    
+    When the device is operating in Scatter Gather mode, then the last locations
+    of the SPRAM store the Base Descriptor address, Current Descriptor address,
+    Current Buffer address, and status quadlet information for each endpoint
+    direction (4 locations per Endpoint). If an Endpoint is bidirectional , then
+    4 locations will be used for IN, and another 4 for OUT).
+    
+    Considering that the total FIFO size of dwc2 otg is 0x3cc (972),
+    and we must reserve (4 * 13) = 52 locations for all Endpoints.
+    So reconfig dwc2 device fifo size as follows:
+    
+    Device RxFIFO = 280
+    Device IN Endpoint TxFIFO
+    - FIFO #0 = (64 / 4) = 16 (Assuming this is used for EP0)
+    - FIFO #1 = (1024/4) = 256 (Assuming this is used for Isochronous)
+    - FIFO #2 = (512/4) = 128
+    - FIFO #3 = (512/4) = 128
+    - FIFO #4 = (256/4) = 64
+    - FIFO #5 = (128/4) = 32
+    - FIFO #6 = (64/4) = 16
+    
+    After reconfig the dwc2 device fifo size, test mtp write on rockchip
+    platform (PC -> rockchip platform) on rk312x/rk3326/px30/rk3288 evb,
+    when mask the 'vfs_write' in f_mtp.c, the writing data rate can be
+    increased from 16MBps ~ 20MBps to 30MBps ~ 36MBps on different kinds
+    of rockchip evbs.
+    
+    Change-Id: Icdf8a5dd95f96d174233e4ffc765c9a982b9f0b6
+    Signed-off-by: William Wu <william.wu@rock-chips.com>
+
+f_uvc.c
+ep = usb_ep_autoconfig(cdev->gadget, &uvc_control_ep);
+ep = usb_ep_autoconfig(cdev->gadget, &uvc_hs_streaming_ep);
+
+qiang@qiang-2004:~/work$ lsusb -t
+/:  Bus 02.Port 1: Dev 1, Class=root_hub, Driver=uhci_hcd/2p, 12M
+    |__ Port 1: Dev 2, If 0, Class=Human Interface Device, Driver=usbhid, 12M
+    |__ Port 2: Dev 3, If 0, Class=Hub, Driver=hub/7p, 12M
+/:  Bus 01.Port 1: Dev 1, Class=root_hub, Driver=ehci-pci/6p, 480M
+    |__ Port 1: Dev 6, If 0, Class=Video, Driver=uvcvideo, 480M
+    |__ Port 1: Dev 6, If 1, Class=Video, Driver=uvcvideo, 480M
+qiang@qiang-2004:~/work$ lsusb
+Bus 001 Device 006: ID 1d6b:0102 Linux Foundation EEM Gadget
+Bus 001 Device 001: ID 1d6b:0002 Linux Foundation 2.0 root hub
+Bus 002 Device 003: ID 0e0f:0002 VMware, Inc. Virtual USB Hub
+Bus 002 Device 002: ID 0e0f:0003 VMware, Inc. Virtual Mouse
+Bus 002 Device 001: ID 1d6b:0001 Linux Foundation 1.1 root hub
+qiang@qiang-2004:~/work$ lsusb -d 1d6b:0102 -v
+
+Bus 001 Device 006: ID 1d6b:0102 Linux Foundation EEM Gadget
+Device: ID 1d6b:0102 Linux Foundation EEM Gadget
+Couldn't open device, some information will be missing
+Device Descriptor:
+  bLength                18
+  bDescriptorType         1
+  bcdUSB               2.00
+  bDeviceClass            0 
+  bDeviceSubClass         0 
+  bDeviceProtocol         0 
+  bMaxPacketSize0        64
+  idVendor           0x1d6b Linux Foundation
+  idProduct          0x0102 EEM Gadget
+  bcdDevice            0.10
+  iManufacturer           1 
+  iProduct                2 
+  iSerial                 3 
+  bNumConfigurations      1
+OTG Descriptor:
+  bLength                 3
+  bDescriptorType         9
+  bmAttributes         0x03
+    SRP (Session Request Protocol)
+    HNP (Host Negotiation Protocol)
+  Configuration Descriptor:
+    bLength                 9
+    bDescriptorType         2
+    wTotalLength       0x0145
+    bNumInterfaces          2
+    bConfigurationValue     1
+    iConfiguration          4 
+    bmAttributes         0x80
+      (Bus Powered)
+    MaxPower                2mA
+    Interface Association:
+      bLength                 8
+      bDescriptorType        11
+      bFirstInterface         0
+      bInterfaceCount         2
+      bFunctionClass         14 Video
+      bFunctionSubClass       3 Video Interface Collection
+      bFunctionProtocol       0 
+      iFunction               5 
+    Interface Descriptor:
+      bLength                 9
+      bDescriptorType         4
+      bInterfaceNumber        0
+      bAlternateSetting       0
+      bNumEndpoints           1
+      bInterfaceClass        14 Video
+      bInterfaceSubClass      1 Video Control
+      bInterfaceProtocol      0 
+      iInterface              5 
+      VideoControl Interface Descriptor:
+        bLength                13
+        bDescriptorType        36
+        bDescriptorSubtype      1 (HEADER)
+        bcdUVC               1.10
+        wTotalLength       0x0034
+        dwClockFrequency       48.000000MHz
+        bInCollection           1
+        baInterfaceNr( 0)       1
+      VideoControl Interface Descriptor:
+        bLength                18
+        bDescriptorType        36
+        bDescriptorSubtype      2 (INPUT_TERMINAL)
+        bTerminalID             1
+        wTerminalType      0x0201 Camera Sensor
+        bAssocTerminal          0
+        iTerminal               0 
+        wObjectiveFocalLengthMin      0
+        wObjectiveFocalLengthMax      0
+        wOcularFocalLength            0
+        bControlSize                  3
+        bmControls           0x00000002
+          Auto-Exposure Mode
+      VideoControl Interface Descriptor:
+        bLength                12
+        bDescriptorType        36
+        bDescriptorSubtype      5 (PROCESSING_UNIT)
+        bUnitID                 2
+        bSourceID               1
+        wMaxMultiplier      16384
+        bControlSize            2
+        bmControls     0x00000001
+          Brightness
+        iProcessing             0 
+        bmVideoStandards     0x00
+      VideoControl Interface Descriptor:
+        bLength                 9
+        bDescriptorType        36
+        bDescriptorSubtype      3 (OUTPUT_TERMINAL)
+        bTerminalID             3
+        wTerminalType      0x0101 USB Streaming
+        bAssocTerminal          0
+        bSourceID               2
+        iTerminal               0 
+      Endpoint Descriptor:
+        bLength                 7
+        bDescriptorType         5
+        bEndpointAddress     0x81  EP 1 IN
+        bmAttributes            3
+          Transfer Type            Interrupt
+          Synch Type               None
+          Usage Type               Data
+        wMaxPacketSize     0x0010  1x 16 bytes
+        bInterval               8
+    Interface Descriptor:
+      bLength                 9
+      bDescriptorType         4
+      bInterfaceNumber        1
+      bAlternateSetting       0
+      bNumEndpoints           0
+      bInterfaceClass        14 Video
+      bInterfaceSubClass      2 Video Streaming
+      bInterfaceProtocol      0 
+      iInterface              6 
+      VideoStreaming Interface Descriptor:
+        bLength                            15
+        bDescriptorType                    36
+        bDescriptorSubtype                  1 (INPUT_HEADER)
+        bNumFormats                         2
+        wTotalLength                   0x00cf
+        bEndPointAddress                  131
+        bmInfo                              0
+        bTerminalLink                       3
+        bStillCaptureMethod                 0
+        bTriggerSupport                     0
+        bTriggerUsage                       0
+        bControlSize                        1
+        bmaControls( 0)                     0
+        bmaControls( 1)                     0
+      VideoStreaming Interface Descriptor:
+        bLength                            11
+        bDescriptorType                    36
+        bDescriptorSubtype                  6 (FORMAT_MJPEG)
+        bFormatIndex                        1
+        bNumFrameDescriptors                3
+        bFlags                              0
+          Fixed-size samples: No
+        bDefaultFrameIndex                  1
+        bAspectRatioX                       0
+        bAspectRatioY                       0
+        bmInterlaceFlags                 0x00
+          Interlaced stream or variable: No
+          Fields per frame: 1 fields
+          Field 1 first: No
+          Field pattern: Field 1 only
+        bCopyProtect                        0
+      VideoStreaming Interface Descriptor:
+        bLength                            38
+        bDescriptorType                    36
+        bDescriptorSubtype                  7 (FRAME_MJPEG)
+        bFrameIndex                         1
+        bmCapabilities                   0x00
+          Still image unsupported
+        wWidth                            800
+        wHeight                           480
+        dwMinBitRate                  3840000
+        dwMaxBitRate                 11520000
+        dwMaxVideoFrameBufferSize      384000
+        dwDefaultFrameInterval         333333
+        bFrameIntervalType                  3
+        dwFrameInterval( 0)            333333
+        dwFrameInterval( 1)            666666
+        dwFrameInterval( 2)           1000000
+      VideoStreaming Interface Descriptor:
+        bLength                            38
+        bDescriptorType                    36
+        bDescriptorSubtype                  7 (FRAME_MJPEG)
+        bFrameIndex                         2
+        bmCapabilities                   0x00
+          Still image unsupported
+        wWidth                            480
+        wHeight                           800
+        dwMinBitRate                  3840000
+        dwMaxBitRate                 11520000
+        dwMaxVideoFrameBufferSize      384000
+        dwDefaultFrameInterval         333333
+        bFrameIntervalType                  3
+        dwFrameInterval( 0)            333333
+        dwFrameInterval( 1)            666666
+        dwFrameInterval( 2)           1000000
+      VideoStreaming Interface Descriptor:
+        bLength                            38
+        bDescriptorType                    36
+        bDescriptorSubtype                  7 (FRAME_MJPEG)
+        bFrameIndex                         3
+        bmCapabilities                   0x00
+          Still image unsupported
+        wWidth                            720
+        wHeight                          1280
+        dwMinBitRate                  9216000
+        dwMaxBitRate                 27648000
+        dwMaxVideoFrameBufferSize      921600
+        dwDefaultFrameInterval         333333
+        bFrameIntervalType                  3
+        dwFrameInterval( 0)            333333
+        dwFrameInterval( 1)            666666
+        dwFrameInterval( 2)           1000000
+      VideoStreaming Interface Descriptor:
+        bLength                            27
+        bDescriptorType                    36
+        bDescriptorSubtype                  4 (FORMAT_UNCOMPRESSED)
+        bFormatIndex                        2
+        bNumFrameDescriptors                1
+        guidFormat                            {32595559-0000-0010-8000-00aa00389b71}
+        bBitsPerPixel                      16
+        bDefaultFrameIndex                  1
+        bAspectRatioX                       0
+        bAspectRatioY                       0
+        bmInterlaceFlags                 0x00
+          Interlaced stream or variable: No
+          Fields per frame: 2 fields
+          Field 1 first: No
+          Field pattern: Field 1 only
+        bCopyProtect                        0
+      VideoStreaming Interface Descriptor:
+        bLength                            34
+        bDescriptorType                    36
+        bDescriptorSubtype                  5 (FRAME_UNCOMPRESSED)
+        bFrameIndex                         1
+        bmCapabilities                   0x00
+          Still image unsupported
+        wWidth                            640
+        wHeight                           360
+        dwMinBitRate                  4608000
+        dwMaxBitRate                  6912000
+        dwMaxVideoFrameBufferSize      460800
+        dwDefaultFrameInterval         666666
+        bFrameIntervalType                  2
+        dwFrameInterval( 0)            666666
+        dwFrameInterval( 1)           1000000
+      VideoStreaming Interface Descriptor:
+        bLength                             6
+        bDescriptorType                    36
+        bDescriptorSubtype                 13 (COLORFORMAT)
+        bColorPrimaries                     1 (BT.709,sRGB)
+        bTransferCharacteristics            1 (BT.709)
+        bMatrixCoefficients                 4 (SMPTE 170M (BT.601))
+    Interface Descriptor:
+      bLength                 9
+      bDescriptorType         4
+      bInterfaceNumber        1
+      bAlternateSetting       1
+      bNumEndpoints           1
+      bInterfaceClass        14 Video
+      bInterfaceSubClass      2 Video Streaming
+      bInterfaceProtocol      0 
+      iInterface              6 
+      Endpoint Descriptor:
+        bLength                 7
+        bDescriptorType         5
+        bEndpointAddress     0x83  EP 3 IN
+        bmAttributes            5
+          Transfer Type            Isochronous
+          Synch Type               Asynchronous
+          Usage Type               Data
+        wMaxPacketSize     0x0200  1x 512 bytes
+        bInterval               1
