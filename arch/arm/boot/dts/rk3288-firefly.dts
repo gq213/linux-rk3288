@@ -11,7 +11,10 @@
 	compatible = "firefly,firefly-rk3288", "rockchip,rk3288";
 
 	chosen {
-		bootargs = "earlycon=uart8250,mmio32,0xff690000 console=ttyS2,115200n8 noinitrd root=PARTLABEL=new_rootfs rootfstype=squashfs rootwait init=/linuxrc ignore_loglevel";
+		// rootfs_in_flash
+		bootargs = "earlycon=uart8250,mmio32,0xff690000 console=ttyS2,115200n8 root=PARTLABEL=new_rootfs rootfstype=squashfs rootwait init=/linuxrc ignore_loglevel";
+		// rootfs_in_ramdisk
+		//bootargs = "earlycon=uart8250,mmio32,0xff690000 console=ttyS2,115200n8 root=/dev/ram initrd=0x04000000,0x00c00000 ramdisk_size=12288 rdinit=/linuxrc init=/linuxrc ignore_loglevel";
 	};
 
 	display-subsystem {
