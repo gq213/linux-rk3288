@@ -3283,16 +3283,13 @@ static void dw_mci_enable_cd(struct dw_mci *host)
 	}
 }
 
-static int sdmmc_restart_notify(struct notifier_block *this,
-				   unsigned long mode, void *cmd)
+static void set_default_voltage(struct dw_mci *host)
 {
-	struct dw_mci *host = container_of(this,
-					struct dw_mci, reset_nb);
 	int ret = 0;
 
 	if (strcmp("ff0f0000.mmc", dev_name(host->dev)) == 0) {
 		dev_info(host->dev, "skip\n");
-		goto exit;
+		return;
 	}
 
 	dev_info(host->dev, "enable default voltage\n");
@@ -3308,8 +3305,25 @@ static int sdmmc_restart_notify(struct notifier_block *this,
 	ret = regulator_enable(host->slot->mmc->supply.vqmmc);
 	if (ret < 0)
 		dev_err(host->dev, "failed to enable regulator vqmmc\n");
+}
 
-exit:
+static int sdmmc_restart_notify(struct notifier_block *this,
+				   unsigned long mode, void *cmd)
+{
+	struct dw_mci *host = container_of(this,
+					struct dw_mci, reset_nb);
+
+	set_default_voltage(host);
+
+	return NOTIFY_DONE;
+}
+
+static int sdmmc_power_off_handler(struct sys_off_data *data)
+{
+	struct dw_mci *host = (struct dw_mci *)data->cb_data;
+
+	set_default_voltage(host);
+
 	return NOTIFY_DONE;
 }
 
@@ -3318,6 +3332,8 @@ int dw_mci_probe(struct dw_mci *host)
 	const struct dw_mci_drv_data *drv_data = host->drv_data;
 	int width, i, ret = 0;
 	u32 fifo_size;
+	static int restart_priority = 129;
+	static int power_off_priority = SYS_OFF_PRIO_DEFAULT + 1;
 
 	if (!host->pdata) {
 		host->pdata = dw_mci_parse_dt(host);
@@ -3502,11 +3518,18 @@ int dw_mci_probe(struct dw_mci *host)
 	dw_mci_enable_cd(host);
 
 	host->reset_nb.notifier_call = sdmmc_restart_notify;
-	host->reset_nb.priority = 129;
+	host->reset_nb.priority = restart_priority++;
 	ret = register_restart_handler(&host->reset_nb);
 	if (ret)
 		pr_err("%s: cannot register restart handler, %d\n",
 		       __func__, ret);
+
+	host->sys_off_hd = register_sys_off_handler(SYS_OFF_MODE_POWER_OFF,
+						power_off_priority++,
+						sdmmc_power_off_handler, host);
+	if (!host->sys_off_hd)
+		pr_err("%s: cannot register sys_off handler\n",
+		       __func__);
 
 	return 0;
 
@@ -3531,6 +3554,8 @@ void dw_mci_remove(struct dw_mci *host)
 	dev_dbg(host->dev, "remove slot\n");
 	if (host->reset_nb.notifier_call)
 		unregister_restart_handler(&host->reset_nb);
+	if (host->sys_off_hd)
+		unregister_sys_off_handler(host->sys_off_hd);
 	if (host->slot)
 		dw_mci_cleanup_slot(host->slot);
 

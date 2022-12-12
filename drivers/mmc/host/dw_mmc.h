@@ -243,6 +243,7 @@ struct dw_mci {
 #endif
 
 	struct notifier_block reset_nb;
+	struct sys_off_handler *sys_off_hd;
 };
 
 /* DMA ops for Internal/External DMAC interface */
