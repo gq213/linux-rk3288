@@ -37,6 +37,7 @@
 #include <linux/of.h>
 #include <linux/of_gpio.h>
 #include <linux/mmc/slot-gpio.h>
+#include <linux/reboot.h>
 
 #include "dw_mmc.h"
 
@@ -1483,6 +1484,7 @@ static void dw_mci_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 
 	switch (ios->power_mode) {
 	case MMC_POWER_UP:
+		dev_info(slot->host->dev, "%s: MMC_POWER_UP\n", __func__);
 		if (!IS_ERR(mmc->supply.vmmc)) {
 			ret = mmc_regulator_set_ocr(mmc, mmc->supply.vmmc,
 					ios->vdd);
@@ -1499,6 +1501,7 @@ static void dw_mci_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 		mci_writel(slot->host, PWREN, regs);
 		break;
 	case MMC_POWER_ON:
+		dev_info(slot->host->dev, "%s: MMC_POWER_ON\n", __func__);
 		if (!slot->host->vqmmc_enabled) {
 			if (!IS_ERR(mmc->supply.vqmmc)) {
 				ret = regulator_enable(mmc->supply.vqmmc);
@@ -1523,6 +1526,7 @@ static void dw_mci_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 
 		break;
 	case MMC_POWER_OFF:
+		dev_info(slot->host->dev, "%s: MMC_POWER_OFF\n", __func__);
 		/* Turn clock off before power goes down */
 		dw_mci_setup_bus(slot, false);
 
@@ -3279,6 +3283,36 @@ static void dw_mci_enable_cd(struct dw_mci *host)
 	}
 }
 
+static int sdmmc_restart_notify(struct notifier_block *this,
+				   unsigned long mode, void *cmd)
+{
+	struct dw_mci *host = container_of(this,
+					struct dw_mci, reset_nb);
+	int ret = 0;
+
+	if (strcmp("ff0f0000.mmc", dev_name(host->dev)) == 0) {
+		dev_info(host->dev, "skip\n");
+		goto exit;
+	}
+
+	dev_info(host->dev, "enable default voltage\n");
+
+	ret = regulator_enable(host->slot->mmc->supply.vmmc);
+	if (ret < 0)
+		dev_err(host->dev, "failed to enable regulator vmmc\n");
+
+	ret = regulator_set_voltage(host->slot->mmc->supply.vqmmc, 3300000, 3300000);
+	if (ret < 0)
+		dev_err(host->dev, "failed to set voltage vqmmc, 3300000, 3300000\n");
+
+	ret = regulator_enable(host->slot->mmc->supply.vqmmc);
+	if (ret < 0)
+		dev_err(host->dev, "failed to enable regulator vqmmc\n");
+
+exit:
+	return NOTIFY_DONE;
+}
+
 int dw_mci_probe(struct dw_mci *host)
 {
 	const struct dw_mci_drv_data *drv_data = host->drv_data;
@@ -3467,6 +3501,13 @@ int dw_mci_probe(struct dw_mci *host)
 	/* Now that slots are all setup, we can enable card detect */
 	dw_mci_enable_cd(host);
 
+	host->reset_nb.notifier_call = sdmmc_restart_notify;
+	host->reset_nb.priority = 129;
+	ret = register_restart_handler(&host->reset_nb);
+	if (ret)
+		pr_err("%s: cannot register restart handler, %d\n",
+		       __func__, ret);
+
 	return 0;
 
 err_dmaunmap:
@@ -3488,6 +3529,8 @@ EXPORT_SYMBOL(dw_mci_probe);
 void dw_mci_remove(struct dw_mci *host)
 {
 	dev_dbg(host->dev, "remove slot\n");
+	if (host->reset_nb.notifier_call)
+		unregister_restart_handler(&host->reset_nb);
 	if (host->slot)
 		dw_mci_cleanup_slot(host->slot);
 

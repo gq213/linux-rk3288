@@ -104,7 +104,6 @@
 		regulator-name = "vcc_sd";
 		regulator-min-microvolt = <3300000>;
 		regulator-max-microvolt = <3300000>;
-		regulator-always-on;
 		regulator-boot-on;
 		startup-delay-us = <100000>;
 		//vin-supply = <&vcc_io>;
@@ -376,10 +375,10 @@
 	bus-width = <4>;
 	cap-mmc-highspeed;
 	cap-sd-highspeed;
-	//sd-uhs-sdr12;
-	//sd-uhs-sdr25;
-	//sd-uhs-sdr50;
-	//sd-uhs-sdr104;
+	sd-uhs-sdr12;
+	sd-uhs-sdr25;
+	sd-uhs-sdr50;
+	sd-uhs-sdr104;
 	card-detect-delay = <200>;
 	disable-wp;
 	pinctrl-names = "default";

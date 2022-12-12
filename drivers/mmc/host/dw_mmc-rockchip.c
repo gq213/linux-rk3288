@@ -33,6 +33,8 @@ static void dw_mci_rk3288_set_ios(struct dw_mci *host, struct mmc_ios *ios)
 	unsigned int cclkin;
 	u32 bus_hz;
 
+	dev_info(host->dev, "%s: ios->clock=%u\n", __func__, ios->clock);
+
 	if (ios->clock == 0)
 		return;
 
@@ -151,6 +153,8 @@ static int dw_mci_rk3288_execute_tuning(struct dw_mci_slot *slot, u32 opcode)
 	int longest_range_len = -1;
 	int longest_range = -1;
 	int middle_phase;
+
+	dev_info(host->dev, "%s: opcode=%u\n", __func__, opcode);
 
 	if (IS_ERR(priv->sample_clk)) {
 		dev_err(host->dev, "Tuning clock (sample_clk) not defined.\n");

@@ -241,6 +241,8 @@ struct dw_mci {
 	struct fault_attr	fail_data_crc;
 	struct hrtimer		fault_timer;
 #endif
+
+	struct notifier_block reset_nb;
 };
 
 /* DMA ops for Internal/External DMAC interface */
