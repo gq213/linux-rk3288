@@ -3720,7 +3720,7 @@ irq_retry:
 	gintsts &= gintmsk;
 
 	if (gintsts & GINTSTS_RESETDET) {
-		dev_dbg(hsotg->dev, "%s: USBRstDet\n", __func__);
+		dev_info(hsotg->dev, "%s: USBRstDet\n", __func__);
 
 		dwc2_writel(hsotg, GINTSTS_RESETDET, GINTSTS);
 
@@ -3735,7 +3735,7 @@ irq_retry:
 		u32 usb_status = dwc2_readl(hsotg, GOTGCTL);
 		u32 connected = hsotg->connected;
 
-		dev_dbg(hsotg->dev, "%s: USBRst\n", __func__);
+		dev_info(hsotg->dev, "%s: USBRst\n", __func__);
 		dev_dbg(hsotg->dev, "GNPTXSTS=%08x\n",
 			dwc2_readl(hsotg, GNPTXSTS));
 
@@ -3817,7 +3817,7 @@ irq_retry:
 	}
 
 	if (gintsts & GINTSTS_ERLYSUSP) {
-		dev_dbg(hsotg->dev, "GINTSTS_ErlySusp\n");
+		dev_info(hsotg->dev, "GINTSTS_ErlySusp\n");
 		dwc2_writel(hsotg, GINTSTS_ERLYSUSP, GINTSTS);
 	}
 

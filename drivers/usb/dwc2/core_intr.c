@@ -121,7 +121,7 @@ static void dwc2_handle_otg_intr(struct dwc2_hsotg *hsotg)
 		dwc2_op_state_str(hsotg));
 
 	if (gotgint & GOTGINT_SES_END_DET) {
-		dev_dbg(hsotg->dev,
+		dev_info(hsotg->dev,
 			" ++OTG Interrupt: Session End Detected++ (%s)\n",
 			dwc2_op_state_str(hsotg));
 		gotgctl = dwc2_readl(hsotg, GOTGCTL);
@@ -312,7 +312,7 @@ static void dwc2_handle_session_req_intr(struct dwc2_hsotg *hsotg)
 	/* Clear interrupt */
 	dwc2_writel(hsotg, GINTSTS_SESSREQINT, GINTSTS);
 
-	dev_dbg(hsotg->dev, "Session request interrupt - lx_state=%d\n",
+	dev_info(hsotg->dev, "Session request interrupt - lx_state=%d\n",
 		hsotg->lx_state);
 
 	if (dwc2_is_device_mode(hsotg)) {
@@ -411,8 +411,8 @@ static void dwc2_handle_wakeup_detected_intr(struct dwc2_hsotg *hsotg)
 	/* Clear interrupt */
 	dwc2_writel(hsotg, GINTSTS_WKUPINT, GINTSTS);
 
-	dev_dbg(hsotg->dev, "++Resume or Remote Wakeup Detected Interrupt++\n");
-	dev_dbg(hsotg->dev, "%s lxstate = %d\n", __func__, hsotg->lx_state);
+	dev_info(hsotg->dev, "++Resume or Remote Wakeup Detected Interrupt++\n");
+	dev_info(hsotg->dev, "%s lxstate = %d\n", __func__, hsotg->lx_state);
 
 	if (hsotg->lx_state == DWC2_L1) {
 		dwc2_wakeup_from_lpm_l1(hsotg);
@@ -510,7 +510,7 @@ static void dwc2_handle_usb_suspend_intr(struct dwc2_hsotg *hsotg)
 	/* Clear interrupt */
 	dwc2_writel(hsotg, GINTSTS_USBSUSP, GINTSTS);
 
-	dev_dbg(hsotg->dev, "USB SUSPEND\n");
+	dev_info(hsotg->dev, "USB SUSPEND\n");
 
 	if (dwc2_is_device_mode(hsotg)) {
 		/*
@@ -519,7 +519,7 @@ static void dwc2_handle_usb_suspend_intr(struct dwc2_hsotg *hsotg)
 		 */
 		dsts = dwc2_readl(hsotg, DSTS);
 		dev_dbg(hsotg->dev, "%s: DSTS=0x%0x\n", __func__, dsts);
-		dev_dbg(hsotg->dev,
+		dev_info(hsotg->dev,
 			"DSTS.Suspend Status=%d HWCFG4.Power Optimize=%d HWCFG4.Hibernation=%d\n",
 			!!(dsts & DSTS_SUSPSTS),
 			hsotg->hw_params.power_optimized,
