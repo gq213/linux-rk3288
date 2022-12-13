@@ -5623,6 +5623,9 @@ void dwc2_gadget_enter_clock_gating(struct dwc2_hsotg *hsotg)
 
 	dev_dbg(hsotg->dev, "Entering device clock gating.\n");
 
+	if (dwc2_is_device_mode(hsotg)) {
+		dev_info(hsotg->dev, "%s()%d: skip\n", __func__, __LINE__);
+	} else {
 	/* Set the Phy Clock bit as suspend is received. */
 	pcgctl = dwc2_readl(hsotg, PCGCTL);
 	pcgctl |= PCGCTL_STOPPCLK;
@@ -5634,8 +5637,10 @@ void dwc2_gadget_enter_clock_gating(struct dwc2_hsotg *hsotg)
 	pcgctl |= PCGCTL_GATEHCLK;
 	dwc2_writel(hsotg, pcgctl, PCGCTL);
 	udelay(5);
+	}
 
 	hsotg->lx_state = DWC2_L2;
+	dev_info(hsotg->dev, "%s()%d+++DWC2_L2\n", __func__, __LINE__);
 	hsotg->bus_suspended = true;
 }
 
@@ -5654,6 +5659,9 @@ void dwc2_gadget_exit_clock_gating(struct dwc2_hsotg *hsotg, int rem_wakeup)
 
 	dev_dbg(hsotg->dev, "Exiting device clock gating.\n");
 
+	if (dwc2_is_device_mode(hsotg)) {
+		dev_info(hsotg->dev, "%s()%d: skip\n", __func__, __LINE__);
+	} else {
 	/* Clear the Gate hclk. */
 	pcgctl = dwc2_readl(hsotg, PCGCTL);
 	pcgctl &= ~PCGCTL_GATEHCLK;
@@ -5665,6 +5673,7 @@ void dwc2_gadget_exit_clock_gating(struct dwc2_hsotg *hsotg, int rem_wakeup)
 	pcgctl &= ~PCGCTL_STOPPCLK;
 	dwc2_writel(hsotg, pcgctl, PCGCTL);
 	udelay(5);
+	}
 
 	if (rem_wakeup) {
 		/* Set Remote Wakeup Signaling */
@@ -5676,5 +5685,6 @@ void dwc2_gadget_exit_clock_gating(struct dwc2_hsotg *hsotg, int rem_wakeup)
 	/* Change to L0 state */
 	call_gadget(hsotg, resume);
 	hsotg->lx_state = DWC2_L0;
+	dev_info(hsotg->dev, "%s()%d+++DWC2_L0\n", __func__, __LINE__);
 	hsotg->bus_suspended = false;
 }

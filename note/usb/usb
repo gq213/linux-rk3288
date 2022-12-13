@@ -56,10 +56,10 @@ ahbcfg                        : 0xe
 uframe_sched                  : 1
 external_id_pin_ctl           : 0
 power_down                    : 0
-lpm                           : 0
-lpm_clock_gating              : 0
-besl                          : 0
-hird_threshold_en             : 0
+lpm                           : 1
+lpm_clock_gating              : 1
+besl                          : 1
+hird_threshold_en             : 1
 hird_threshold                : 4
 service_interval              : 0
 host_dma                      : 1

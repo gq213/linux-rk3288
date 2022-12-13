@@ -441,12 +441,6 @@ static void dwc2_handle_wakeup_detected_intr(struct dwc2_hsotg *hsotg)
 			if (hsotg->params.power_down ==
 			    DWC2_POWER_DOWN_PARAM_NONE && hsotg->bus_suspended)
 				dwc2_gadget_exit_clock_gating(hsotg, 0);
-			else {
-				/* Change to L0 state */
-				call_gadget(hsotg, resume);
-				hsotg->lx_state = DWC2_L0;
-				dev_info(hsotg->dev, "%s()%d+++DWC2_L0\n", __func__, __LINE__);
-			}
 		} else {
 			/* Change to L0 state */
 			hsotg->lx_state = DWC2_L0;

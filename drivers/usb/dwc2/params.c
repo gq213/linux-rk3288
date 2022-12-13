@@ -142,9 +142,7 @@ static void dwc2_set_rk_params(struct dwc2_hsotg *hsotg)
 	p->host_perio_tx_fifo_size = 256;
 	p->ahbcfg = GAHBCFG_HBSTLEN_INCR16 <<
 		GAHBCFG_HBSTLEN_SHIFT;
-	p->lpm = false;
 	p->power_down = DWC2_POWER_DOWN_PARAM_NONE;
-	p->no_clock_gating = true;
 }
 
 static void dwc2_set_ltq_params(struct dwc2_hsotg *hsotg)
