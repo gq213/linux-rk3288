@@ -1418,7 +1418,7 @@ static int dwc2_hsotg_ep_queue(struct usb_ep *ep, struct usb_request *req,
 
 	/* Prevent new request submission when controller is suspended */
 	if (hs->lx_state != DWC2_L0) {
-		dev_dbg(hs->dev, "%s: submit request only in active state\n",
+		dev_err(hs->dev, "%s: submit request only in active state\n",
 			__func__);
 		return -EAGAIN;
 	}
@@ -3331,6 +3331,7 @@ void dwc2_hsotg_disconnect(struct dwc2_hsotg *hsotg)
 
 	call_gadget(hsotg, disconnect);
 	hsotg->lx_state = DWC2_L3;
+	dev_info(hsotg->dev, "%s()%d+++DWC2_L3\n", __func__, __LINE__);
 
 	usb_gadget_set_state(&hsotg->gadget, USB_STATE_NOTATTACHED);
 }
@@ -3577,6 +3578,7 @@ void dwc2_hsotg_core_init_disconnected(struct dwc2_hsotg *hsotg,
 	mdelay(3);
 
 	hsotg->lx_state = DWC2_L0;
+	dev_info(hsotg->dev, "%s()%d+++DWC2_L0\n", __func__, __LINE__);
 
 	dwc2_hsotg_enqueue_setup(hsotg);
 
@@ -3729,6 +3731,7 @@ irq_retry:
 			dwc2_exit_partial_power_down(hsotg, 0, true);
 
 		hsotg->lx_state = DWC2_L0;
+		dev_info(hsotg->dev, "%s()%d+++DWC2_L0\n", __func__, __LINE__);
 	}
 
 	if (gintsts & (GINTSTS_USBRST | GINTSTS_RESETDET)) {
