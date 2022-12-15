@@ -39,3 +39,44 @@ cat /proc/iomem
 cat /sys/kernel/debug/gpio
 cat /sys/kernel/debug/clk/clk_summary
 cat /sys/kernel/debug/regulator/regulator_summary
+
+cat /sys/devices/system/cpu/cpufreq/policy0/scaling_available_governors 
+conservative ondemand userspace powersave performance schedutil 
+cat /sys/devices/system/cpu/cpufreq/policy0/scaling_available_frequencies 
+126000 216000 312000 408000 600000 696000 816000 1008000 1200000 1416000 1512000 1608000 
+cat /sys/devices/system/cpu/cpufreq/policy0/scaling_governor
+ondemand
+cat /sys/devices/system/cpu/cpufreq/policy0/scaling_cur_freq
+408000
+cat /sys/kernel/debug/clk/armclk/clk_rate
+408000000
+
+echo userspace > /sys/devices/system/cpu/cpufreq/policy0/scaling_governor
+echo 216000 > /sys/devices/system/cpu/cpufreq/policy0/scaling_setspeed
+
+cat /sys/kernel/debug/regulator/vdd_cpu/cpu0-cpu0/min_uV
+900000
+cat /sys/kernel/debug/regulator/vdd_cpu/cpu0-cpu0/max_uV
+900000
+
+ls /sys/kernel/debug/regulator/vdd_cpu/cpu0-cpu0/ -l
+total 0
+-r--r--r--    1 root     root             0 Jan  1 00:00 constraint_flags
+-r--r--r--    1 root     root             0 Jan  1 23:07 max_uV
+-r--r--r--    1 root     root             0 Jan  1 00:00 min_uV
+-r--r--r--    1 root     root             0 Jan  1 00:00 uA_load
+echo 950000 > /sys/kernel/debug/regulator/vdd_cpu/cpu0-cpu0/max_uV
+echo 950000 > /sys/kernel/debug/regulator/vdd_cpu/cpu0-cpu0/min_uV
+sh: write error: Permission denied
+
+ls -l /sys/kernel/debug/clk/armclk/clk_rate
+-r--r--r--    1 root     root             0 Jan  1 00:00 /sys/kernel/debug/clk/armclk/clk_rate
+echo 408000000 > /sys/kernel/debug/clk/armclk/clk_rate
+sh: write error: Permission denied
+
+cat /sys/class/thermal/thermal_zone1/policy
+cat /sys/class/thermal/thermal_zone2/policy
+cat /sys/class/thermal/thermal_zone1/mode
+cat /sys/class/thermal/thermal_zone2/mode
+cat /sys/class/thermal/thermal_zone1/temp
+cat /sys/class/thermal/thermal_zone2/temp

@@ -361,7 +361,7 @@ static int of_platform_bus_create(struct device_node *bus,
 
 	/* Skip nodes for which we don't want to create devices */
 	if (unlikely(of_match_node(of_skipped_node_table, bus))) {
-		pr_debug("%s() - skipping %pOF node\n", __func__, bus);
+		pr_info("%s() - skipping %pOF node\n", __func__, bus);
 		return 0;
 	}
 
