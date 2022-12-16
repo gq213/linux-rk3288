@@ -80,3 +80,30 @@ cat /sys/class/thermal/thermal_zone1/mode
 cat /sys/class/thermal/thermal_zone2/mode
 cat /sys/class/thermal/thermal_zone1/temp
 cat /sys/class/thermal/thermal_zone2/temp
+
+ulimit -a
+
+CONFIG_ELF_CORE=y
+CONFIG_COREDUMP=y
+ulimit -c
+ulimit -c unlimited
+echo "1" > /proc/sys/kernel/core_uses_pid
+echo "/tmp/core-%e-%p-%s-%t" > /proc/sys/kernel/core_pattern
+
+ulimit -s
+ulimit -s 1024
+
+echo 1 > /proc/sys/kernel/sysrq
+echo c > /proc/sysrq-trigger
+
+device
+echo "ttyS2,115200n8" > /sys/module/kgdboc/parameters/kgdboc
+echo g > /proc/sysrq-trigger
+pc
+sudo arm-linux-gnueabihf-gdb vmlinux
+(gdb) set serial baud 115200
+(gdb) target remote /dev/ttyUSB0
+Remote debugging using /dev/ttyUSB0
+0xc01c5328 in arch_kgdb_breakpoint () at kernel/debug/debug_core.c:1229
+1229    kernel/debug/debug_core.c: No such file or directory.
+(gdb) continue
