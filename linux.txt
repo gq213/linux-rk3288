@@ -107,3 +107,17 @@ Remote debugging using /dev/ttyUSB0
 0xc01c5328 in arch_kgdb_breakpoint () at kernel/debug/debug_core.c:1229
 1229    kernel/debug/debug_core.c: No such file or directory.
 (gdb) continue
+
+cat /sys/block/mmcblk0/queue/scheduler
+[mq-deadline] kyber none
+echo none > /sys/block/mmcblk0/queue/scheduler
+time dd if=/dev/mmcblk0p2 of=/dev/null bs=10M count=10
+echo 3 > /proc/sys/vm/drop_caches
+mq-deadline
+real    0m 2.29s
+user    0m 0.00s
+sys     0m 0.30s
+none
+real    0m 2.26s
+user    0m 0.00s
+sys     0m 0.51s
