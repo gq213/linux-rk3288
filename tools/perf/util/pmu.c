@@ -1199,7 +1199,7 @@ static char *pmu_formats_string(struct list_head *formats)
 	struct perf_pmu_format *format;
 	char *str = NULL;
 	struct strbuf buf = STRBUF_INIT;
-	unsigned i = 0;
+	unsigned int i = 0;
 
 	if (!formats)
 		return NULL;
@@ -1845,7 +1845,7 @@ static int perf_pmu__new_caps(struct list_head *list, char *name, char *value)
 	return 0;
 
 free_name:
-	zfree(caps->name);
+	zfree(&caps->name);
 free_caps:
 	free(caps);
 

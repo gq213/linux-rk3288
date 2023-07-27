@@ -778,8 +778,8 @@ static int build_verbs_tx_desc(
 
 	/* add icrc, lt byte, and padding to flit */
 	if (extra_bytes)
-		ret = sdma_txadd_daddr(sde->dd, &tx->txreq,
-				       sde->dd->sdma_pad_phys, extra_bytes);
+		ret = sdma_txadd_daddr(sde->dd, &tx->txreq, sde->dd->sdma_pad_phys,
+				       extra_bytes);
 
 bail_txadd:
 	return ret;
@@ -1447,12 +1447,10 @@ static int shut_down_port(struct rvt_dev_info *rdi, u32 port_num)
 	struct hfi1_ibdev *verbs_dev = dev_from_rdi(rdi);
 	struct hfi1_devdata *dd = dd_from_dev(verbs_dev);
 	struct hfi1_pportdata *ppd = &dd->pport[port_num - 1];
-	int ret;
 
 	set_link_down_reason(ppd, OPA_LINKDOWN_REASON_UNKNOWN, 0,
 			     OPA_LINKDOWN_REASON_UNKNOWN);
-	ret = set_link_state(ppd, HLS_DN_DOWNDEF);
-	return ret;
+	return set_link_state(ppd, HLS_DN_DOWNDEF);
 }
 
 static int hfi1_get_guid_be(struct rvt_dev_info *rdi, struct rvt_ibport *rvp,
@@ -1801,7 +1799,7 @@ int hfi1_register_ib_device(struct hfi1_devdata *dd)
 
 	ib_set_device_ops(ibdev, &hfi1_dev_ops);
 
-	strlcpy(ibdev->node_desc, init_utsname()->nodename,
+	strscpy(ibdev->node_desc, init_utsname()->nodename,
 		sizeof(ibdev->node_desc));
 
 	/*

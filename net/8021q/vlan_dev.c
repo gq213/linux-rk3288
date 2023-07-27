@@ -108,8 +108,8 @@ static netdev_tx_t vlan_dev_hard_start_xmit(struct sk_buff *skb,
 	 * NOTE: THIS ASSUMES DIX ETHERNET, SPECIFICALLY NOT SUPPORTING
 	 * OTHER THINGS LIKE FDDI/TokenRing/802.3 SNAPs...
 	 */
-	if (veth->h_vlan_proto != vlan->vlan_proto ||
-	    vlan->flags & VLAN_FLAG_REORDER_HDR) {
+	if (vlan->flags & VLAN_FLAG_REORDER_HDR ||
+	    veth->h_vlan_proto != vlan->vlan_proto) {
 		u16 vlan_tci;
 		vlan_tci = vlan->vlan_id;
 		vlan_tci |= vlan_dev_get_egress_qos_mask(dev, skb->priority);
@@ -365,7 +365,7 @@ static int vlan_dev_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
 
 	switch (cmd) {
 	case SIOCSHWTSTAMP:
-		if (!net_eq(dev_net(dev), &init_net))
+		if (!net_eq(dev_net(dev), dev_net(real_dev)))
 			break;
 		fallthrough;
 	case SIOCGMIIPHY:
@@ -674,9 +674,9 @@ static int vlan_ethtool_get_link_ksettings(struct net_device *dev,
 static void vlan_ethtool_get_drvinfo(struct net_device *dev,
 				     struct ethtool_drvinfo *info)
 {
-	strlcpy(info->driver, vlan_fullname, sizeof(info->driver));
-	strlcpy(info->version, vlan_version, sizeof(info->version));
-	strlcpy(info->fw_version, "N/A", sizeof(info->fw_version));
+	strscpy(info->driver, vlan_fullname, sizeof(info->driver));
+	strscpy(info->version, vlan_version, sizeof(info->version));
+	strscpy(info->fw_version, "N/A", sizeof(info->fw_version));
 }
 
 static int vlan_ethtool_get_ts_info(struct net_device *dev,

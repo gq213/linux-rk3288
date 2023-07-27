@@ -430,14 +430,16 @@ static ssize_t iwl_dbgfs_amsdu_len_write(struct ieee80211_sta *sta,
 		return -EBUSY;
 
 	if (amsdu_len) {
-		mvmsta->orig_amsdu_len = sta->max_amsdu_len;
-		sta->max_amsdu_len = amsdu_len;
-		for (i = 0; i < ARRAY_SIZE(sta->max_tid_amsdu_len); i++)
-			sta->max_tid_amsdu_len[i] = amsdu_len;
+		mvmsta->orig_amsdu_len = sta->cur->max_amsdu_len;
+		sta->deflink.agg.max_amsdu_len = amsdu_len;
+		sta->deflink.agg.max_amsdu_len = amsdu_len;
+		for (i = 0; i < ARRAY_SIZE(sta->deflink.agg.max_tid_amsdu_len); i++)
+			sta->deflink.agg.max_tid_amsdu_len[i] = amsdu_len;
 	} else {
-		sta->max_amsdu_len = mvmsta->orig_amsdu_len;
+		sta->deflink.agg.max_amsdu_len = mvmsta->orig_amsdu_len;
 		mvmsta->orig_amsdu_len = 0;
 	}
+
 	return count;
 }
 
@@ -451,7 +453,7 @@ static ssize_t iwl_dbgfs_amsdu_len_read(struct file *file,
 	char buf[32];
 	int pos;
 
-	pos = scnprintf(buf, sizeof(buf), "current %d ", sta->max_amsdu_len);
+	pos = scnprintf(buf, sizeof(buf), "current %d ", sta->cur->max_amsdu_len);
 	pos += scnprintf(buf + pos, sizeof(buf) - pos, "stored %d\n",
 			 mvmsta->orig_amsdu_len);
 
@@ -1743,6 +1745,11 @@ static ssize_t iwl_dbgfs_mem_read(struct file *file, char __user *user_buf,
 	if (ret < 0)
 		return ret;
 
+	if (iwl_rx_packet_payload_len(hcmd.resp_pkt) < sizeof(*rsp)) {
+		ret = -EIO;
+		goto out;
+	}
+
 	rsp = (void *)hcmd.resp_pkt->data;
 	if (le32_to_cpu(rsp->status) != DEBUG_MEM_STATUS_SUCCESS) {
 		ret = -ENXIO;
@@ -1818,6 +1825,11 @@ static ssize_t iwl_dbgfs_mem_write(struct file *file,
 
 	if (ret < 0)
 		return ret;
+
+	if (iwl_rx_packet_payload_len(hcmd.resp_pkt) < sizeof(*rsp)) {
+		ret = -EIO;
+		goto out;
+	}
 
 	rsp = (void *)hcmd.resp_pkt->data;
 	if (rsp->status != DEBUG_MEM_STATUS_SUCCESS) {

@@ -5,6 +5,7 @@
 
 #include <linux/bug.h>
 #include <linux/kernel.h>
+#include <linux/memory.h>
 #include <linux/module.h>
 #include <linux/string.h>
 #include <linux/uaccess.h>
@@ -17,6 +18,9 @@
 static bool errata_probe_pbmt(unsigned int stage,
 			      unsigned long arch_id, unsigned long impid)
 {
+	if (!IS_ENABLED(CONFIG_ERRATA_THEAD_PBMT))
+		return false;
+
 	if (arch_id != 0 || impid != 0)
 		return false;
 
@@ -30,7 +34,9 @@ static bool errata_probe_pbmt(unsigned int stage,
 static bool errata_probe_cmo(unsigned int stage,
 			     unsigned long arch_id, unsigned long impid)
 {
-#ifdef CONFIG_ERRATA_THEAD_CMO
+	if (!IS_ENABLED(CONFIG_ERRATA_THEAD_CMO))
+		return false;
+
 	if (arch_id != 0 || impid != 0)
 		return false;
 
@@ -40,9 +46,6 @@ static bool errata_probe_cmo(unsigned int stage,
 	riscv_cbom_block_size = L1_CACHE_BYTES;
 	riscv_noncoherent_supported();
 	return true;
-#else
-	return false;
-#endif
 }
 
 static u32 thead_errata_probe(unsigned int stage,
@@ -51,10 +54,10 @@ static u32 thead_errata_probe(unsigned int stage,
 	u32 cpu_req_errata = 0;
 
 	if (errata_probe_pbmt(stage, archid, impid))
-		cpu_req_errata |= (1U << ERRATA_THEAD_PBMT);
+		cpu_req_errata |= BIT(ERRATA_THEAD_PBMT);
 
 	if (errata_probe_cmo(stage, archid, impid))
-		cpu_req_errata |= (1U << ERRATA_THEAD_CMO);
+		cpu_req_errata |= BIT(ERRATA_THEAD_CMO);
 
 	return cpu_req_errata;
 }
@@ -76,11 +79,14 @@ void __init_or_module thead_errata_patch_func(struct alt_entry *begin, struct al
 		tmp = (1U << alt->errata_id);
 		if (cpu_req_errata & tmp) {
 			/* On vm-alternatives, the mmu isn't running yet */
-			if (stage == RISCV_ALTERNATIVES_EARLY_BOOT)
+			if (stage == RISCV_ALTERNATIVES_EARLY_BOOT) {
 				memcpy((void *)__pa_symbol(alt->old_ptr),
 				       (void *)__pa_symbol(alt->alt_ptr), alt->alt_len);
-			else
+			} else {
+				mutex_lock(&text_mutex);
 				patch_text_nosync(alt->old_ptr, alt->alt_ptr, alt->alt_len);
+				mutex_unlock(&text_mutex);
+			}
 		}
 	}
 

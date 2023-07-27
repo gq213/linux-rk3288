@@ -549,6 +549,7 @@ static int srpt_format_guid(char *buf, unsigned int size, const __be64 *guid)
  */
 static int srpt_refresh_port(struct srpt_port *sport)
 {
+	struct ib_mad_agent *mad_agent;
 	struct ib_mad_reg_req reg_req;
 	struct ib_port_modify port_modify;
 	struct ib_port_attr port_attr;
@@ -593,24 +594,26 @@ static int srpt_refresh_port(struct srpt_port *sport)
 		set_bit(IB_MGMT_METHOD_GET, reg_req.method_mask);
 		set_bit(IB_MGMT_METHOD_SET, reg_req.method_mask);
 
-		sport->mad_agent = ib_register_mad_agent(sport->sdev->device,
-							 sport->port,
-							 IB_QPT_GSI,
-							 &reg_req, 0,
-							 srpt_mad_send_handler,
-							 srpt_mad_recv_handler,
-							 sport, 0);
-		if (IS_ERR(sport->mad_agent)) {
+		mad_agent = ib_register_mad_agent(sport->sdev->device,
+						  sport->port,
+						  IB_QPT_GSI,
+						  &reg_req, 0,
+						  srpt_mad_send_handler,
+						  srpt_mad_recv_handler,
+						  sport, 0);
+		if (IS_ERR(mad_agent)) {
 			pr_err("%s-%d: MAD agent registration failed (%ld). Note: this is expected if SR-IOV is enabled.\n",
 			       dev_name(&sport->sdev->device->dev), sport->port,
-			       PTR_ERR(sport->mad_agent));
+			       PTR_ERR(mad_agent));
 			sport->mad_agent = NULL;
 			memset(&port_modify, 0, sizeof(port_modify));
 			port_modify.clr_port_cap_mask = IB_PORT_DEVICE_MGMT_SUP;
 			ib_modify_port(sport->sdev->device, sport->port, 0,
 				       &port_modify);
-
+			return 0;
 		}
+
+		sport->mad_agent = mad_agent;
 	}
 
 	return 0;
@@ -1421,7 +1424,7 @@ static int srpt_build_cmd_rsp(struct srpt_rdma_ch *ch,
 
 		srp_rsp->flags |= SRP_RSP_FLAG_SNSVALID;
 		srp_rsp->sense_data_len = cpu_to_be32(sense_data_len);
-		memcpy(srp_rsp + 1, sense_data, sense_data_len);
+		memcpy(srp_rsp->data, sense_data, sense_data_len);
 	}
 
 	return sizeof(*srp_rsp) + sense_data_len;
@@ -2300,7 +2303,7 @@ static int srpt_cm_req_recv(struct srpt_device *const sdev,
 		goto free_recv_ring;
 	}
 
-	strlcpy(ch->sess_name, src_addr, sizeof(ch->sess_name));
+	strscpy(ch->sess_name, src_addr, sizeof(ch->sess_name));
 	snprintf(i_port_id, sizeof(i_port_id), "0x%016llx%016llx",
 			be64_to_cpu(*(__be64 *)nexus->i_port_id),
 			be64_to_cpu(*(__be64 *)(nexus->i_port_id + 8)));
@@ -3191,7 +3194,7 @@ static int srpt_add_one(struct ib_device *device)
 	 * if this HCA is gone bad and replaced by different HCA
 	 */
 	ret = sdev->cm_id ?
-		ib_cm_listen(sdev->cm_id, cpu_to_be64(srpt_service_guid), 0) :
+		ib_cm_listen(sdev->cm_id, cpu_to_be64(srpt_service_guid)) :
 		0;
 	if (ret < 0) {
 		pr_err("ib_cm_listen() failed: %d (cm_id state = %d)\n", ret,

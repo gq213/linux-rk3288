@@ -302,7 +302,7 @@ trace_probe_primary_from_call(struct trace_event_call *call)
 {
 	struct trace_probe_event *tpe = trace_probe_event_from_call(call);
 
-	return list_first_entry(&tpe->probes, struct trace_probe, list);
+	return list_first_entry_or_null(&tpe->probes, struct trace_probe, list);
 }
 
 static inline struct list_head *trace_probe_probe_list(struct trace_probe *tp)
@@ -445,7 +445,8 @@ extern int traceprobe_define_arg_fields(struct trace_event_call *event_call,
 	C(SAME_PROBE,		"There is already the exact same probe event"),\
 	C(NO_EVENT_INFO,	"This requires both group and event name to attach"),\
 	C(BAD_ATTACH_EVENT,	"Attached event does not exist"),\
-	C(BAD_ATTACH_ARG,	"Attached event does not have this field"),
+	C(BAD_ATTACH_ARG,	"Attached event does not have this field"),\
+	C(NO_EP_FILTER,		"No filter rule after 'if'"),
 
 #undef C
 #define C(a, b)		TP_ERR_##a

@@ -145,7 +145,6 @@ static int rxe_udp_encap_recv(struct sock *sk, struct sk_buff *skb)
 		goto drop;
 
 	if (skb_linearize(skb)) {
-		pr_err("skb_linearize failed\n");
 		ib_device_put(&rxe->ib_dev);
 		goto drop;
 	}
@@ -156,6 +155,9 @@ static int rxe_udp_encap_recv(struct sock *sk, struct sk_buff *skb)
 	pkt->hdr = (u8 *)(udph + 1);
 	pkt->mask = RXE_GRH_MASK;
 	pkt->paylen = be16_to_cpu(udph->len) - sizeof(*udph);
+
+	/* remove udp header */
+	skb_pull(skb, sizeof(struct udphdr));
 
 	rxe_rcv(skb);
 
@@ -397,6 +399,9 @@ static int rxe_loopback(struct sk_buff *skb, struct rxe_pkt_info *pkt)
 		kfree_skb(skb);
 		return -EIO;
 	}
+
+	/* remove udp header */
+	skb_pull(skb, sizeof(struct udphdr));
 
 	rxe_rcv(skb);
 

@@ -876,8 +876,7 @@ static int hist_entry__dso_to_filter(struct hist_entry *he, int type,
 static int64_t
 sort__sym_from_cmp(struct hist_entry *left, struct hist_entry *right)
 {
-	struct addr_map_symbol *from_l = &left->branch_info->from;
-	struct addr_map_symbol *from_r = &right->branch_info->from;
+	struct addr_map_symbol *from_l, *from_r;
 
 	if (!left->branch_info || !right->branch_info)
 		return cmp_null(left->branch_info, right->branch_info);
@@ -1948,6 +1947,43 @@ struct sort_entry sort_dso_size = {
 	.se_width_idx	= HISTC_DSO_SIZE,
 };
 
+/* --sort dso_size */
+
+static int64_t
+sort__addr_cmp(struct hist_entry *left, struct hist_entry *right)
+{
+	u64 left_ip = left->ip;
+	u64 right_ip = right->ip;
+	struct map *left_map = left->ms.map;
+	struct map *right_map = right->ms.map;
+
+	if (left_map)
+		left_ip = left_map->unmap_ip(left_map, left_ip);
+	if (right_map)
+		right_ip = right_map->unmap_ip(right_map, right_ip);
+
+	return _sort__addr_cmp(left_ip, right_ip);
+}
+
+static int hist_entry__addr_snprintf(struct hist_entry *he, char *bf,
+				     size_t size, unsigned int width)
+{
+	u64 ip = he->ip;
+	struct map *map = he->ms.map;
+
+	if (map)
+		ip = map->unmap_ip(map, ip);
+
+	return repsep_snprintf(bf, size, "%-#*llx", width, ip);
+}
+
+struct sort_entry sort_addr = {
+	.se_header	= "Address",
+	.se_cmp		= sort__addr_cmp,
+	.se_snprintf	= hist_entry__addr_snprintf,
+	.se_width_idx	= HISTC_ADDR,
+};
+
 
 struct sort_dimension {
 	const char		*name;
@@ -1997,6 +2033,7 @@ static struct sort_dimension common_sort_dimensions[] = {
 	DIM(SORT_GLOBAL_INS_LAT, "ins_lat", sort_global_ins_lat),
 	DIM(SORT_LOCAL_PIPELINE_STAGE_CYC, "local_p_stage_cyc", sort_local_p_stage_cyc),
 	DIM(SORT_GLOBAL_PIPELINE_STAGE_CYC, "p_stage_cyc", sort_global_p_stage_cyc),
+	DIM(SORT_ADDR, "addr", sort_addr),
 };
 
 #undef DIM

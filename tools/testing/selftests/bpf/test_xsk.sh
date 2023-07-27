@@ -73,14 +73,20 @@
 #
 # Run and dump packet contents:
 #   sudo ./test_xsk.sh -D
+#
+# Run test suite for physical device in loopback mode
+#   sudo ./test_xsk.sh -i IFACE
 
 . xsk_prereqs.sh
 
-while getopts "vD" flag
+ETH=""
+
+while getopts "vDi:" flag
 do
 	case "${flag}" in
 		v) verbose=1;;
 		D) dump_pkts=1;;
+		i) ETH=${OPTARG};;
 	esac
 done
 
@@ -112,6 +118,7 @@ setup_vethPairs() {
 	ip link add ${VETH0} numtxqueues 4 numrxqueues 4 type veth peer name ${VETH1} numtxqueues 4 numrxqueues 4
 	if [ -f /proc/net/if_inet6 ]; then
 		echo 1 > /proc/sys/net/ipv6/conf/${VETH0}/disable_ipv6
+		echo 1 > /proc/sys/net/ipv6/conf/${VETH1}/disable_ipv6
 	fi
 	if [[ $verbose -eq 1 ]]; then
 	        echo "setting up ${VETH1}: namespace: ${NS1}"
@@ -132,17 +139,24 @@ setup_vethPairs() {
 	ip link set ${VETH0} up
 }
 
-validate_root_exec
-validate_veth_support ${VETH0}
-validate_ip_utility
-setup_vethPairs
+if [ ! -z $ETH ]; then
+	VETH0=${ETH}
+	VETH1=${ETH}
+	NS1=""
+else
+	validate_root_exec
+	validate_veth_support ${VETH0}
+	validate_ip_utility
+	setup_vethPairs
 
-retval=$?
-if [ $retval -ne 0 ]; then
-	test_status $retval "${TEST_NAME}"
-	cleanup_exit ${VETH0} ${VETH1} ${NS1}
-	exit $retval
+	retval=$?
+	if [ $retval -ne 0 ]; then
+		test_status $retval "${TEST_NAME}"
+		cleanup_exit ${VETH0} ${VETH1} ${NS1}
+		exit $retval
+	fi
 fi
+
 
 if [[ $verbose -eq 1 ]]; then
 	ARGS+="-v "
@@ -152,26 +166,33 @@ if [[ $dump_pkts -eq 1 ]]; then
 	ARGS="-D "
 fi
 
+retval=$?
 test_status $retval "${TEST_NAME}"
 
 ## START TESTS
 
 statusList=()
 
-TEST_NAME="XSK_SELFTESTS_SOFTIRQ"
+TEST_NAME="XSK_SELFTESTS_${VETH0}_SOFTIRQ"
 
 exec_xskxceiver
 
-cleanup_exit ${VETH0} ${VETH1} ${NS1}
-TEST_NAME="XSK_SELFTESTS_BUSY_POLL"
+if [ -z $ETH ]; then
+	cleanup_exit ${VETH0} ${VETH1} ${NS1}
+fi
+TEST_NAME="XSK_SELFTESTS_${VETH0}_BUSY_POLL"
 busy_poll=1
 
-setup_vethPairs
+if [ -z $ETH ]; then
+	setup_vethPairs
+fi
 exec_xskxceiver
 
 ## END TESTS
 
-cleanup_exit ${VETH0} ${VETH1} ${NS1}
+if [ -z $ETH ]; then
+	cleanup_exit ${VETH0} ${VETH1} ${NS1}
+fi
 
 failures=0
 echo -e "\nSummary:"

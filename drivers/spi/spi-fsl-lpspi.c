@@ -855,8 +855,7 @@ static int fsl_lpspi_probe(struct platform_device *pdev)
 
 	init_completion(&fsl_lpspi->xfer_done);
 
-	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-	fsl_lpspi->base = devm_ioremap_resource(&pdev->dev, res);
+	fsl_lpspi->base = devm_platform_get_and_ioremap_resource(pdev, 0, &res);
 	if (IS_ERR(fsl_lpspi->base)) {
 		ret = PTR_ERR(fsl_lpspi->base);
 		goto out_controller_put;
@@ -906,13 +905,18 @@ static int fsl_lpspi_probe(struct platform_device *pdev)
 	ret = fsl_lpspi_dma_init(&pdev->dev, fsl_lpspi, controller);
 	if (ret == -EPROBE_DEFER)
 		goto out_pm_get;
-
 	if (ret < 0)
 		dev_err(&pdev->dev, "dma setup error %d, use pio\n", ret);
+	else
+		/*
+		 * disable LPSPI module IRQ when enable DMA mode successfully,
+		 * to prevent the unexpected LPSPI module IRQ events.
+		 */
+		disable_irq(irq);
 
 	ret = devm_spi_register_controller(&pdev->dev, controller);
 	if (ret < 0) {
-		dev_err_probe(&pdev->dev, ret, "spi_register_controller error: %i\n", ret);
+		dev_err_probe(&pdev->dev, ret, "spi_register_controller error\n");
 		goto free_dma;
 	}
 
@@ -947,11 +951,8 @@ static int fsl_lpspi_remove(struct platform_device *pdev)
 
 static int __maybe_unused fsl_lpspi_suspend(struct device *dev)
 {
-	int ret;
-
 	pinctrl_pm_select_sleep_state(dev);
-	ret = pm_runtime_force_suspend(dev);
-	return ret;
+	return pm_runtime_force_suspend(dev);
 }
 
 static int __maybe_unused fsl_lpspi_resume(struct device *dev)
