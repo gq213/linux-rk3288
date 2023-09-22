@@ -980,12 +980,16 @@ static void __init rk3288_common_init(struct device_node *np,
 
 static void __init rk3288_clk_init(struct device_node *np)
 {
+	pr_info("%s\n", __func__);
+
 	rk3288_common_init(np, RK3288_CRU);
 }
 CLK_OF_DECLARE(rk3288_cru, "rockchip,rk3288-cru", rk3288_clk_init);
 
 static void __init rk3288w_clk_init(struct device_node *np)
 {
+	pr_info("%s\n", __func__);
+
 	rk3288_common_init(np, RK3288W_CRU);
 }
 CLK_OF_DECLARE(rk3288w_cru, "rockchip,rk3288w-cru", rk3288w_clk_init);
