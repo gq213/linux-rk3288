@@ -72,6 +72,12 @@
 			pinctrl-names = "default";
 			pinctrl-0 = <&power_led>;
 		};
+
+		relay {
+			gpios = <&gpio7 RK_PA3 GPIO_ACTIVE_HIGH>;
+			label = "relay_led";
+			default-state = "off";
+		};
 	};
 
 	sound-i2s {

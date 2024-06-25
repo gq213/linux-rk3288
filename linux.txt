@@ -1,6 +1,6 @@
 
 udhcpc -b -i eth0 -R -x hostname:bboxeth0
-mount -t nfs -o nolock -o tcp 192.168.2.125:/opt/gaoqiang/3288 /mnt
+mount -t nfs -o nolock -o tcp 192.168.100.8:/mnt/disk/nfs /mnt
 
 hexdump /dev/input/event0
 hexdump /dev/input/event2
