@@ -143,4 +143,5 @@ void brcmf_of_probe(struct device *dev, enum brcmf_bus_type bus_type,
 	sdio->oob_irq_supported = true;
 	sdio->oob_irq_nr = irq;
 	sdio->oob_irq_flags = irqf;
+	brcmf_info("oob_irq_nr=%d,oob_irq_flags=%lu\n", sdio->oob_irq_nr, sdio->oob_irq_flags);
 }

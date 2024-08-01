@@ -155,8 +155,10 @@ int brcmf_sdiod_intr_register(struct brcmf_sdio_dev *sdiodev)
 
 		/* redirect, configure and enable io for interrupt signal */
 		data = SDIO_CCCR_BRCM_SEPINT_MASK | SDIO_CCCR_BRCM_SEPINT_OE;
-		if (pdata->oob_irq_flags & IRQF_TRIGGER_HIGH)
+		if (pdata->oob_irq_flags & IRQF_TRIGGER_HIGH) {
+			brcmf_info("IRQF_TRIGGER_HIGH\n");
 			data |= SDIO_CCCR_BRCM_SEPINT_ACT_HI;
+		}
 		brcmf_sdiod_func0_wb(sdiodev, SDIO_CCCR_BRCM_SEPINT,
 				     data, &ret);
 		sdio_release_host(sdiodev->func1);
@@ -954,6 +956,7 @@ void brcmf_sdiod_freezer_uncount(struct brcmf_sdio_dev *sdiodev)
 
 int brcmf_sdiod_remove(struct brcmf_sdio_dev *sdiodev)
 {
+	brcmf_info("++++++++++++++++ enter ++++++++++++++++\n");
 	sdiodev->state = BRCMF_SDIOD_DOWN;
 	if (sdiodev->bus) {
 		brcmf_sdio_remove(sdiodev->bus);
@@ -973,6 +976,7 @@ int brcmf_sdiod_remove(struct brcmf_sdio_dev *sdiodev)
 	sdiodev->sbwad_valid = 0;
 
 	pm_runtime_allow(sdiodev->func1->card->host->parent);
+	brcmf_info("++++++++++++++++ exit ++++++++++++++++\n");
 	return 0;
 }
 

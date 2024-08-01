@@ -571,6 +571,9 @@ struct brcmf_sdio {
 	u32 sent_idx;
 	struct task_ctl	thr_rxf_ctl;
 	spinlock_t	rxf_lock; /* lock for rxf idx protection */
+	
+	int watchdog_tsk_stop;
+	int thr_rxf_ctl_stop;
 };
 
 /* clkstate */
@@ -2866,18 +2869,46 @@ static void brcmf_sdio_bus_stop(struct device *dev)
 	u32 local_hostintmask;
 	u8 saveclk, bpreq;
 	int err;
+	int cnt;
 
 	brcmf_dbg(TRACE, "Enter\n");
+	brcmf_info("++++++++++++++++ enter ++++++++++++++++\n");
 
 	if (bus->watchdog_tsk) {
+		brcmf_info("++++++++++++++++ watchdog_tsk stop ++++++++++++++++\n");
 		send_sig(SIGTERM, bus->watchdog_tsk, 1);
-		kthread_stop(bus->watchdog_tsk);
+		// kthread_stop(bus->watchdog_tsk);
+		if (bus->watchdog_tsk_stop) {
+			bus->watchdog_tsk_stop = 2;
+			cnt = 0;
+			while (bus->watchdog_tsk_stop != 0) {
+				msleep(10);
+				if (++cnt > 10) {
+					break;
+				}
+			}
+			brcmf_info("++++++++++++++++ watchdog_tsk cnt=%d ++++++++++++++++\n", cnt);
+		}
+		brcmf_info("++++++++++++++++ watchdog_tsk done ++++++++++++++++\n");
 		bus->watchdog_tsk = NULL;
 	}
 
 	if (bus->thr_rxf_ctl.p_task) {
+		brcmf_info("++++++++++++++++ thr_rxf_ctl stop ++++++++++++++++\n");
 		send_sig(SIGTERM, bus->thr_rxf_ctl.p_task, 1);
-		kthread_stop(bus->thr_rxf_ctl.p_task);
+		// kthread_stop(bus->thr_rxf_ctl.p_task);
+		if (bus->thr_rxf_ctl_stop) {
+			bus->thr_rxf_ctl_stop = 2;
+			cnt = 0;
+			while (bus->thr_rxf_ctl_stop != 0) {
+				msleep(10);
+				if (++cnt > 10) {
+					break;
+				}
+			}
+			brcmf_info("++++++++++++++++ thr_rxf_ctl cnt=%d ++++++++++++++++\n", cnt);
+		}
+		brcmf_info("++++++++++++++++ thr_rxf_ctl done ++++++++++++++++\n");
 		bus->thr_rxf_ctl.p_task = NULL;
 	}
 
@@ -2936,6 +2967,8 @@ static void brcmf_sdio_bus_stop(struct device *dev)
 	/* Reset some F2 state stuff */
 	bus->rxskip = false;
 	bus->tx_seq = bus->rx_seq = 0;
+	
+	brcmf_info("++++++++++++++++ exit ++++++++++++++++\n");
 }
 
 static inline void brcmf_sdio_clrintr(struct brcmf_sdio *bus)
@@ -5003,8 +5036,10 @@ brcmf_sdio_probe_attach(struct brcmf_sdio *bus)
 	if (IS_ENABLED(CONFIG_PM_SLEEP) &&
 	    (sdio_get_host_pm_caps(sdiodev->func1) & MMC_PM_KEEP_POWER) &&
 	    ((sdio_get_host_pm_caps(sdiodev->func1) & MMC_PM_WAKE_SDIO_IRQ) ||
-	     (sdiodev->settings->bus.sdio.oob_irq_supported)))
+	     (sdiodev->settings->bus.sdio.oob_irq_supported))) {
+		brcmf_info("wowl_supported\n");
 		sdiodev->bus_if->wowl_supported = true;
+	}
 
 	if (brcmf_sdio_kso_init(bus)) {
 		brcmf_err("error enabling KSO\n");
@@ -5118,9 +5153,17 @@ brcmf_sdio_rxf_thread(void *data)
 	sched_setscheduler(current, SCHED_FIFO, &param);
 #endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0) */
 
+	brcmf_info("++++++++++++++++ enter ++++++++++++++++\n");
+	bus->thr_rxf_ctl_stop = 1;
 	while (1) {
-		if (kthread_should_stop())
+		if (bus->thr_rxf_ctl_stop == 2) {
+			brcmf_info("++++++++++++++++ 111 ++++++++++++++++\n");
 			break;
+		}
+		if (kthread_should_stop()) {
+			brcmf_info("++++++++++++++++ 222 ++++++++++++++++\n");
+			break;
+		}
 
 		if (down_interruptible(&bus->thr_rxf_ctl.sema) == 0) {
 			struct sk_buff *skb = NULL;
@@ -5140,9 +5183,12 @@ brcmf_sdio_rxf_thread(void *data)
 				skb = skbnext;
 			}
 		} else {
+			brcmf_info("++++++++++++++++ 333 ++++++++++++++++\n");
 			break;
 		}
 	}
+	bus->thr_rxf_ctl_stop = 0;
+	brcmf_info("++++++++++++++++ exit ++++++++++++++++\n");
 	return 0;
 }
 
@@ -5155,9 +5201,17 @@ brcmf_sdio_watchdog_thread(void *data)
 	allow_signal(SIGTERM);
 	/* Run until signal received */
 	brcmf_sdiod_freezer_count(bus->sdiodev);
+	brcmf_info("++++++++++++++++ enter ++++++++++++++++\n");
+	bus->watchdog_tsk_stop = 1;
 	while (1) {
-		if (kthread_should_stop())
+		if (bus->watchdog_tsk_stop == 2) {
+			brcmf_info("++++++++++++++++ 111 ++++++++++++++++\n");
 			break;
+		}
+		if (kthread_should_stop()) {
+			brcmf_info("++++++++++++++++ 222 ++++++++++++++++\n");
+			break;
+		}
 		brcmf_sdiod_freezer_uncount(bus->sdiodev);
 		wait = wait_for_completion_interruptible(&bus->watchdog_wait);
 		brcmf_sdiod_freezer_count(bus->sdiodev);
@@ -5167,9 +5221,13 @@ brcmf_sdio_watchdog_thread(void *data)
 			/* Count the tick for reference */
 			bus->sdcnt.tickcnt++;
 			reinit_completion(&bus->watchdog_wait);
-		} else
+		} else {
+			brcmf_info("++++++++++++++++ 333 ++++++++++++++++\n");
 			break;
+		}
 	}
+	bus->watchdog_tsk_stop = 0;
+	brcmf_info("++++++++++++++++ exit ++++++++++++++++\n");
 	return 0;
 }
 
@@ -5744,19 +5802,47 @@ void brcmf_sdio_remove(struct brcmf_sdio *bus)
 	struct brcmf_bus *bus_if = bus->sdiodev->bus_if;
 	u32 reg_val, read_reg;
 	int err = 0;
+	int cnt;
 
 	brcmf_dbg(TRACE, "Enter\n");
+	brcmf_info("++++++++++++++++ enter ++++++++++++++++\n");
 	if (bus) {
 		/* Stop watchdog task */
 		if (bus->watchdog_tsk) {
+			brcmf_info("++++++++++++++++ watchdog_tsk stop ++++++++++++++++\n");
 			send_sig(SIGTERM, bus->watchdog_tsk, 1);
-			kthread_stop(bus->watchdog_tsk);
+			// kthread_stop(bus->watchdog_tsk);
+			if (bus->watchdog_tsk_stop) {
+				bus->watchdog_tsk_stop = 2;
+				cnt = 0;
+				while (bus->watchdog_tsk_stop != 0) {
+					msleep(10);
+					if (++cnt > 10) {
+						break;
+					}
+				}
+				brcmf_info("++++++++++++++++ watchdog_tsk cnt=%d ++++++++++++++++\n", cnt);
+			}
+			brcmf_info("++++++++++++++++ watchdog_tsk done ++++++++++++++++\n");
 			bus->watchdog_tsk = NULL;
 		}
 
 		if (bus->thr_rxf_ctl.p_task) {
+			brcmf_info("++++++++++++++++ thr_rxf_ctl stop ++++++++++++++++\n");
 			send_sig(SIGTERM, bus->thr_rxf_ctl.p_task, 1);
-			kthread_stop(bus->thr_rxf_ctl.p_task);
+			// kthread_stop(bus->thr_rxf_ctl.p_task);
+			if (bus->thr_rxf_ctl_stop) {
+				bus->thr_rxf_ctl_stop = 2;
+				cnt = 0;
+				while (bus->thr_rxf_ctl_stop != 0) {
+					msleep(10);
+					if (++cnt > 10) {
+						break;
+					}
+				}
+				brcmf_info("++++++++++++++++ thr_rxf_ctl cnt=%d ++++++++++++++++\n", cnt);
+			}
+			brcmf_info("++++++++++++++++ thr_rxf_ctl done ++++++++++++++++\n");
 			bus->thr_rxf_ctl.p_task = NULL;
 		}
 
@@ -5903,6 +5989,7 @@ void brcmf_sdio_remove(struct brcmf_sdio *bus)
 		kfree(bus);
 	}
 
+	brcmf_info("++++++++++++++++ exit ++++++++++++++++\n");
 	brcmf_dbg(TRACE, "Disconnected\n");
 }
 
