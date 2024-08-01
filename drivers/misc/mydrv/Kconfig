@@ -1,0 +1,16 @@
+#
+# MYDRV configuration
+#
+
+menuconfig MYDRV
+	tristate "my drivers"
+
+if MYDRV
+
+config MYDRV_VER
+	tristate "ver driver"
+
+config MYDRV_BT
+	tristate "bt driver"
+
+endif

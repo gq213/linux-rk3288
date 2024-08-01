@@ -1,5 +1,49 @@
 
-udhcpc -b -i eth0 -R -x hostname:bboxeth0
+[root@buildroot /]# ls -l /sys/class/tty/ttyS*
+lrwxrwxrwx    1 root     root             0 Jan  1 08:01 /sys/class/tty/ttyS0 -> ../../devices/platform/ff180000.serial/tty/ttyS0
+lrwxrwxrwx    1 root     root             0 Jan  1 08:01 /sys/class/tty/ttyS1 -> ../../devices/platform/serial8250/tty/ttyS1
+lrwxrwxrwx    1 root     root             0 Jan  1 08:01 /sys/class/tty/ttyS2 -> ../../devices/platform/ff690000.serial/tty/ttyS2
+lrwxrwxrwx    1 root     root             0 Jan  1 08:01 /sys/class/tty/ttyS3 -> ../../devices/platform/serial8250/tty/ttyS3
+
+hciconfig -a
+hciconfig dev
+hciconfig hci0 up
+
+hcitool dev
+hcitool scan
+hcitool lescan
+
+hciconfig hci0 name "ble_test"
+hciconfig hci0 leadv 0				// 开启低功耗广播，可连接
+hciconfig hci0 leadv 3				// 开启低功耗广播，不可连接
+hciconfig hci0 noleadv				// 关闭低功耗广播
+hciconfig hci0 name "bt_test"
+hciconfig hci0 piscan				// 启用Page和Inquiry扫描
+hciconfig hci0 noscan				// 关闭扫描
+
+wpa_supplicant -B -Dnl80211 -iwlan0 -c /etc/sta_none.conf -dd
+
+wpa_cli -p/var/run/wpa_supplicant status
+wpa_cli -p/var/run/wpa_supplicant scan
+wpa_cli -p/var/run/wpa_supplicant scan_results
+wpa_cli -p/var/run/wpa_supplicant ap_scan 1
+wpa_cli -p/var/run/wpa_supplicant add_network
+wpa_cli -p/var/run/wpa_supplicant set_network 0 ssid '"8794"'
+wpa_cli -p/var/run/wpa_supplicant set_network 0 key_mgmt WPA-PSK
+wpa_cli -p/var/run/wpa_supplicant set_network 0 psk '"abcdabcd"'
+wpa_cli -p/var/run/wpa_supplicant select_network 0
+
+udhcpc -b -i wlan0 -x hostname:wpa_cli -R -s /etc/simple.script &
+
+iw phy phy0 reg get
+iw dev wlan0 info
+iw dev wlan0 link
+iwconfig wlan0
+
+iperf3 -c 192.168.100.8 -t 10 -Z -P 4 -i 1 -f M --bind-dev wlan0
+iperf3 -c 192.168.100.8 -t 10 -Z -P 4 -i 1 -f M --bind-dev wlan0 -R
+
+udhcpc -b -i eth0 -x hostname:eth0 -R -s /etc/simple.script &
 mount -t nfs -o nolock -o tcp 192.168.100.8:/mnt/disk/nfs /mnt
 
 hexdump /dev/input/event0
